@@ -1,28 +1,26 @@
 const ClientError = require('../../exceptions/ClientError');
- 
-class ExportsHandler {
-  constructor(service, validator, playlistsService) {
+
+class UploadsHandler {
+  constructor(service, validator) {
     this._service = service;
     this._validator = validator;
-    this._servicePlaylist = playlistsService;
- 
-    this.postExportPlaylistsHandler = this.postExportPlaylistsHandler.bind(this);
+
+    this.postUploadImageHandler = this.postUploadImageHandler.bind(this);
   }
- 
-  async postExportPlaylistsHandler(request, h) {
+
+  async postUploadImageHandler(request, h) {
     try {
-      this._validator.validateExportPlaylistsPayload(request.payload);
+      const { data } = request.payload;
+      this._validator.validateImageHeaders(data.hapi.headers);
 
-      const message = {
-        userId: request.auth.credentials.id,
-        targetEmail: request.payload.targetEmail,
-      };
-
-      await this._service.sendMessage('export:playlists', JSON.stringify(message));
+      const filename = await this._service.writeFile(data, data.hapi);
 
       const response = h.response({
         status: 'success',
-        message: 'Permintaan Anda dalam antrean',
+        message: 'Gambar berhasih diunggah',
+        data: {
+          fileLocation: `http://${process.env.HOST}:${process.env.PORT}/upload/pictures/${filename}`,
+        },
       });
       response.code(201);
       return response;
@@ -47,4 +45,4 @@ class ExportsHandler {
   }
 }
 
-module.exports = ExportsHandler;
+module.exports = UploadsHandler;
