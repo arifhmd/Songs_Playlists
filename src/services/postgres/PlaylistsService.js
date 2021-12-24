@@ -1,8 +1,7 @@
 const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
-const { mapDBToModel } = require('../../utils');
+const { mapDBToPlaylist } = require('../../utils');
 const InvariantError = require('../../exceptions/InvariantError');
-const NotFoundError = require('../../exceptions/NotFoundError');
 const AuthorizationError = require('../../exceptions/AuthorizationError');
 
 class PlaylistsService {
@@ -34,13 +33,16 @@ class PlaylistsService {
       return JSON.parse(result);
     } catch (error) {
       const query = {
-        text: `SELECT playlists.* FROM playlists
+        text: `SELECT playlists.id, playlists.name, users.username
+        FROM playlists
+        LEFT JOIN users ON users.id = playlists.owner
         LEFT JOIN collaborations ON collaborations.playlist_id = playlists.id
-        WHERE playlists.owner = $1 OR collaborations.user_id = $1`,
+        WHERE playlists.owner = $1 OR collaborations.user_id = $1
+        GROUP BY playlists.id, users.username`,
         values: [owner],
       };
       const result = await this._pool.query(query);
-      const mappedResult = result.rows.map(mapDBToModel);
+      const mappedResult = result.rows.map(mapDBToPlaylist);
 
       await this._cacheService.set(`playlists:${owner}`, JSON.stringify(mappedResult));
       return mappedResult;
@@ -67,7 +69,7 @@ class PlaylistsService {
     };
     const result = await this._pool.query(query);
     if (!result.rowCount) {
-      throw new NotFoundError('Playlist tidak ditemukan');
+      throw new InvariantError('Playlist tidak ditemukan');
     }
     const playlist = result.rows[0];
     if (playlist.owner !== owner) {
@@ -75,15 +77,15 @@ class PlaylistsService {
     }
   }
 
-  async verifyPlaylistAccess(playlistId, userId) {
+  async verifyPlaylistAccess(playlistId, credentialId) {
     try {
-      await this.verifyPlaylistOwner(playlistId, userId);
+      await this.verifyPlaylistOwner(playlistId, credentialId);
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof InvariantError) {
         throw error;
       }
       try {
-        await this._collaborationService.verifyCollaborator(playlistId, userId);
+        await this._collaborationService.verifyCollaborator(playlistId, credentialId);
       } catch {
         throw error;
       }
