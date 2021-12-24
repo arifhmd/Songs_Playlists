@@ -4,6 +4,7 @@ const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
 const Inert = require('@hapi/inert');
 const path = require('path');
+const ClientError = require('./exceptions/ClientError');
 
 const songs = require('./api/songs');
 const SongsService = require('./services/postgres/SongService');
@@ -47,7 +48,7 @@ const init = async () => {
   const authenticationsService = new AuthenticationsService();
   const collaborationsService = new CollaborationsService(cacheService);
   const playlistsService = new PlaylistsService(collaborationsService, cacheService);
-  const playlistsongsService = new PlaylistSongsService(cacheService);
+  const playlistsongsService = new PlaylistSongsService();
   const storageService = new StorageService(path.resolve(__dirname, 'api/uploads/pictures'));
 
   const server = Hapi.server({
@@ -83,6 +84,34 @@ const init = async () => {
         id: artifacts.decoded.payload.id,
       },
     }),
+  });
+
+  server.ext('onPreResponse', (request, h) => {
+    const { response } = request;
+    if (response instanceof ClientError) {
+      const newResponse = h.response({
+        status: 'fail',
+        message: response.message,
+      });
+      newResponse.code(response.statusCode);
+      return newResponse;
+    } if (response instanceof Error) {
+      const { statusCode, payload } = response.output;
+      if (statusCode === 401) {
+        return h.response(payload).code(401);
+      }
+      if (statusCode === 413) {
+        return h.response(payload).code(413);
+      }
+      const newResponse = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.',
+      });
+      console.log(response);
+      newResponse.code(500);
+      return newResponse;
+    }
+    return response.continue || response;
   });
 
   await server.register([
@@ -135,8 +164,8 @@ const init = async () => {
     {
       plugin: _exports,
       options: {
+        playlistsService,
         service: ProducerService,
-        servicePlayList: playlistsService,
         validator: ExportsValidator,
       },
     },
@@ -144,7 +173,6 @@ const init = async () => {
       plugin: uploads,
       options: {
         service: storageService,
-        servicePlayList: playlistsService,
         validator: UploadsValidator,
       },
     },
