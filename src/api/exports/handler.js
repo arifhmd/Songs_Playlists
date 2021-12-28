@@ -1,26 +1,32 @@
 const ClientError = require('../../exceptions/ClientError');
-
-class UploadsHandler {
-  constructor(service, validator) {
+ 
+class ExportsHandler {
+  constructor(service, validator, playlistsService) {
     this._service = service;
     this._validator = validator;
-
-    this.postUploadImageHandler = this.postUploadImageHandler.bind(this);
+    this._playlistsService = playlistsService;
+ 
+    this.postExportPlaylistsHandler = this.postExportPlaylistsHandler.bind(this);
   }
-
-  async postUploadImageHandler(request, h) {
+ 
+  async postExportPlaylistsHandler(request, h) {
     try {
-      const { data } = request.payload;
-      this._validator.validateImageHeaders(data.hapi.headers);
+      this._validator.validateExportPlaylistsPayload(request.payload);
+      const { playlistId } = request.params;
+      const { id: credentialId } = request.auth.credentials;
 
-      const filename = await this._service.writeFile(data, data.hapi);
+      await this._playlistsService.verifyPlaylistAccess(playlistId, credentialId);
+
+      const message = {
+        playlistId: request.auth.credentials.id,
+        targetEmail: request.payload.targetEmail,
+      };
+
+      await this._service.sendMessage('export:playlists', JSON.stringify(message));
 
       const response = h.response({
         status: 'success',
-        message: 'Gambar berhasih diunggah',
-        data: {
-          fileLocation: `http://${process.env.HOST}:${process.env.PORT}/upload/pictures/${filename}`,
-        },
+        message: 'Permintaan Anda sedang kami proses',
       });
       response.code(201);
       return response;
@@ -45,4 +51,4 @@ class UploadsHandler {
   }
 }
 
-module.exports = UploadsHandler;
+module.exports = ExportsHandler;

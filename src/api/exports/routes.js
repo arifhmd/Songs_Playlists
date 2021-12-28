@@ -1,26 +1,10 @@
-const path = require('path');
-
 const routes = (handler) => [
   {
     method: 'POST',
-    path: '/upload/pictures',
-    handler: handler.postUploadImageHandler,
+    path: '/exports/playlists/{playlistId}',
+    handler: handler.postExportPlaylistsHandler,
     options: {
-      payload: {
-        allow: 'multipart/form-data',
-        multipart: true,
-        output: 'stream',
-        maxBytes: 500000,
-      },
-    },
-  },
-  {
-    method: 'GET',
-    path: '/upload/{param*}',
-    handler: {
-      directory: {
-        path: path.resolve(__dirname, 'file'),
-      },
+      auth: 'songsapp_jwt',
     },
   },
 ];

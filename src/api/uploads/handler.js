@@ -1,25 +1,25 @@
-const ClientError = require('../../exceptions/ClientError')
+const ClientError = require('../../exceptions/ClientError');
 
 class UploadsHandler {
-  constructor(service, validator, playlistsService) {
-    this._service = service
-    this._validator = validator
-    this._playlistsService = playlistsService;
+  constructor(service, validator) {
+    this._service = service;
+    this._validator = validator;
 
-    this.postUploadsHandler = this.postUploadsHandler.bind(this);
+    this.postUploadImageHandler = this.postUploadImageHandler.bind(this);
   }
 
-  async postUploadsHandler (request, h) {
+  async postUploadImageHandler(request, h) {
     try {
-      const { data } = request.payload
+      const { data } = request.payload;
+      this._validator.validateImageHeaders(data.hapi.headers);
 
-      this._validator.uploadValidate(data.hapi.headers)
-      const filename = await this._service.writeFile(data, data.hapi)
+      const filename = await this._service.writeFile(data, data.hapi);
+
       const response = h.response({
         status: 'success',
-        message: 'Gambar berhasil diunggah',
+        message: 'Gambar berhasih diunggah',
         data: {
-          pictureUrl: `http://${process.env.HOST}:${process.env.PORT}/upload/pictures/${filename}`,
+          fileLocation: `http://${process.env.HOST}:${process.env.PORT}/uploads/pictures/${filename}`,
         },
       });
       response.code(201);
@@ -33,6 +33,7 @@ class UploadsHandler {
         response.code(error.statusCode);
         return response;
       }
+
       const response = h.response({
         status: 'error',
         message: 'Maaf, terjadi kegagalan pada server kami.',

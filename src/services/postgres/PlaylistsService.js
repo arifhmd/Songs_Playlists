@@ -5,9 +5,9 @@ const InvariantError = require('../../exceptions/InvariantError');
 const AuthorizationError = require('../../exceptions/AuthorizationError');
 
 class PlaylistsService {
-  constructor(collaborationService, cacheService) {
+  constructor(collaborationsService, cacheService) {
     this._pool = new Pool();
-    this._collaborationService = collaborationService;
+    this._collaborationsService = collaborationsService;
     this._cacheService = cacheService;
   }
 
@@ -85,7 +85,7 @@ class PlaylistsService {
         throw error;
       }
       try {
-        await this._collaborationService.verifyCollaborator(playlistId, credentialId);
+        await this._collaborationsService.verifyCollaborator(playlistId, credentialId);
       } catch {
         throw error;
       }
