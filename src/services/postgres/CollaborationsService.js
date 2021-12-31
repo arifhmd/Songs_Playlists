@@ -20,7 +20,7 @@ class CollaborationsService {
     if (!result.rowCount) {
       throw new InvariantError('Kolaborasi gagal ditambahkan');
     }
-    await this._cacheService.delete(`playlists:${playlistId}`);
+    await this._cacheService.delete(`playlists:${userId}`);
     return result.rows[0].id;
   }
 
@@ -29,13 +29,12 @@ class CollaborationsService {
       text: 'DELETE FROM collaborations WHERE playlist_id = $1 AND user_id = $2 RETURNING id',
       values: [playlistId, userId],
     };
-
     const result = await this._pool.query(query);
 
     if (!result.rowCount) {
       throw new InvariantError('Kolaborasi gagal dihapus');
     }
-    await this._cacheService.delete(`playlists:${playlistId}`);
+    await this._cacheService.delete(`playlists:${userId}`);
   }
 
   async verifyCollaborator(playlistId, userId) {
@@ -43,7 +42,6 @@ class CollaborationsService {
       text: 'SELECT * FROM collaborations WHERE playlist_id = $1 AND user_id = $2',
       values: [playlistId, userId],
     };
-
     const result = await this._pool.query(query);
 
     if (!result.rowCount) {

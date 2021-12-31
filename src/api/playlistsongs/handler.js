@@ -3,7 +3,7 @@ const ClientError = require('../../exceptions/ClientError');
 class PlaylistSongsHandler {
   constructor(service, playlistsService, validator) {
     this._service = service;
-    this._servicePlaylist = playlistsService;
+    this._playlistsService = playlistsService;
     this._validator = validator;
 
     this.addPlaylistSongHandler = this.addPlaylistSongHandler.bind(this);
@@ -18,9 +18,9 @@ class PlaylistSongsHandler {
       const { id: credentialId } = request.auth.credentials;
 
       this._validator.validatePlaylistSongPayload(request.payload);
-      await this._servicePlaylist.verifyPlaylistAccess(playlistId, credentialId);
+      await this._playlistsService.verifyPlaylistAccess(playlistId, credentialId);
 
-      const playlistsongsId = await this._service.addPlaylistSong(playlistId, songId);
+      const playlistsongsId = await this._service.addPlaylistSong({ playlistId, songId });
       const response = h.response({
         status: 'success',
         message: 'Lagu berhasil ditambahkan ke playlist',
@@ -45,8 +45,7 @@ class PlaylistSongsHandler {
         message: 'Maaf, terjadi kegagalan pada server kami.',
       });
       response.code(500);
-      console.error(error);
-      return response;
+      return console.error(error);
     }
   }
 
@@ -55,7 +54,7 @@ class PlaylistSongsHandler {
       const { playlistId } = request.params;
       const { id: credentialId } = request.auth.credentials;
 
-      await this._servicePlaylist.verifyPlaylistAccess(playlistId, credentialId);
+      await this._playlistsService.verifyPlaylistAccess(playlistId, credentialId);
 
       const songs = await this._service.getPlaylistSong(playlistId);
       const response = h.response({
@@ -80,8 +79,7 @@ class PlaylistSongsHandler {
         message: 'Maaf, terjadi kegagalan pada server kami.',
       });
       response.code(500);
-      console.error(error);
-      return response;
+      return console.error(error);
     }
   }
 
@@ -91,7 +89,7 @@ class PlaylistSongsHandler {
       const { songId } = request.payload;
       const { id: credentialId } = request.auth.credentials;
 
-      await this._servicePlaylist.verifyPlaylistAccess(playlistId, credentialId);
+      await this._playlistsService.verifyPlaylistAccess(playlistId, credentialId);
 
       const playlistsongsId = await this._service.deletePlaylistSongById(playlistId, songId);
       const response = h.response({
@@ -117,8 +115,7 @@ class PlaylistSongsHandler {
         message: 'Maaf, terjadi kegagalan pada server kami.',
       });
       response.code(500);
-      console.error(error);
-      return response;
+      return console.error(error);
     }
   }
 }

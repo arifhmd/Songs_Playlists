@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
-const { mapDBToPlaylist } = require('../../utils');
 const InvariantError = require('../../exceptions/InvariantError');
+const { mapDBToPlaylist } = require('../../utils');
 const AuthorizationError = require('../../exceptions/AuthorizationError');
 
 class PlaylistsService {
@@ -33,12 +33,10 @@ class PlaylistsService {
       return JSON.parse(result);
     } catch (error) {
       const query = {
-        text: `SELECT playlists.id, playlists.name, users.username
-        FROM playlists
-        LEFT JOIN users ON users.id = playlists.owner
+        text: `SELECT playlists.*,users.username FROM playlists
         LEFT JOIN collaborations ON collaborations.playlist_id = playlists.id
-        WHERE playlists.owner = $1 OR collaborations.user_id = $1
-        GROUP BY playlists.id, users.username`,
+        LEFT JOIN users ON users.id = playlists.owner
+        WHERE playlists.owner = $1 OR collaborations.user_id = $1`,
         values: [owner],
       };
       const result = await this._pool.query(query);

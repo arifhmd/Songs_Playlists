@@ -48,8 +48,14 @@ const init = async () => {
   const authenticationsService = new AuthenticationsService();
   const collaborationsService = new CollaborationsService(cacheService);
   const playlistsService = new PlaylistsService(collaborationsService, cacheService);
-  const playlistsongsService = new PlaylistSongsService();
-  const storageService = new StorageService(path.resolve(__dirname, 'api/uploads/pictures'));
+  const playlistsongsService = new PlaylistSongsService(
+    playlistsService,
+    songsService,
+    cacheService
+  );
+  const storageService = new StorageService(
+    path.resolve(__dirname, 'api/uploads/file/pictures')
+  );
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -94,21 +100,6 @@ const init = async () => {
         message: response.message,
       });
       newResponse.code(response.statusCode);
-      return newResponse;
-    } if (response instanceof Error) {
-      const { statusCode, payload } = response.output;
-      if (statusCode === 401) {
-        return h.response(payload).code(401);
-      }
-      if (statusCode === 413) {
-        return h.response(payload).code(413);
-      }
-      const newResponse = h.response({
-        status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.',
-      });
-      console.log(response);
-      newResponse.code(500);
       return newResponse;
     }
     return response.continue || response;
@@ -156,6 +147,7 @@ const init = async () => {
     {
       plugin: playlistsongs,
       options: {
+        collaborationsService,
         service: playlistsongsService,
         servicePlaylist: playlistsService,
         validator: PlaylistSongsValidator,
